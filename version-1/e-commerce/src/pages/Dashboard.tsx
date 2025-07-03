@@ -62,6 +62,8 @@ const EcommerceDashboard = () => {
   const [monthlyLoading, setMonthlyLoading] = useState(true);
   const [categorySales, setCategorySales] = useState<any[]>([]);
   const [categoryLoading, setCategoryLoading] = useState(true);
+  const [hourlyPerformance, setHourlyPerformance] = useState<any[]>([]);
+  const [hourlyLoading, setHourlyLoading] = useState(true);
 
   useEffect(() => {
     setKpiLoading(true);
@@ -139,11 +141,33 @@ const EcommerceDashboard = () => {
       });
   }, []);
 
+  useEffect(() => {
+    setHourlyLoading(true);
+    axios
+      .get(`${API_BASE_URL}/superadmin/dashboard/hourly-performance`, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+      })
+      .then((res) => {
+        setHourlyPerformance(res.data.hourly);
+        setHourlyLoading(false);
+      })
+      .catch((err) => {
+        setHourlyLoading(false);
+        setHourlyPerformance([]);
+        console.error(err);
+      });
+  }, []);
+
   // Use revenueTrend for salesData
   const salesData = revenueTrend;
 
   // Use categorySales for categoryData
   const categoryData = categorySales;
+
+  // Use hourlyPerformance for hourlyData
+  const hourlyData = hourlyPerformance;
 
   const topProducts = [
     { name: "iPhone 15 Pro", sales: 234, revenue: 234000, trend: "up" },
@@ -196,21 +220,6 @@ const EcommerceDashboard = () => {
       revenue: 12400,
       avgOrder: 13.93,
     },
-  ];
-
-  const hourlyData = [
-    { hour: "00:00", orders: 12, revenue: 1240 },
-    { hour: "02:00", orders: 8, revenue: 890 },
-    { hour: "04:00", orders: 5, revenue: 560 },
-    { hour: "06:00", orders: 15, revenue: 1680 },
-    { hour: "08:00", orders: 32, revenue: 3420 },
-    { hour: "10:00", orders: 45, revenue: 4890 },
-    { hour: "12:00", orders: 67, revenue: 7230 },
-    { hour: "14:00", orders: 54, revenue: 5890 },
-    { hour: "16:00", orders: 48, revenue: 5120 },
-    { hour: "18:00", orders: 39, revenue: 4230 },
-    { hour: "20:00", orders: 28, revenue: 3140 },
-    { hour: "22:00", orders: 18, revenue: 2010 },
   ];
 
   const conversionFunnelData = [
@@ -674,38 +683,49 @@ const EcommerceDashboard = () => {
             <h3 className="text-lg font-semibold text-gray-900 mb-6">
               Hourly Performance
             </h3>
-            <ResponsiveContainer width="100%" height={300}>
-              <LineChart data={hourlyData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-                <XAxis
-                  dataKey="hour"
-                  axisLine={false}
-                  tickLine={false}
-                  tick={{ fill: "#64748b", fontSize: 12 }}
-                />
-                <YAxis
-                  axisLine={false}
-                  tickLine={false}
-                  tick={{ fill: "#64748b", fontSize: 12 }}
-                />
-                <Tooltip
-                  contentStyle={{
-                    backgroundColor: "white",
-                    border: "1px solid #e2e8f0",
-                    borderRadius: "8px",
-                    boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1)",
-                  }}
-                />
-                <Line
-                  type="monotone"
-                  dataKey="orders"
-                  stroke="#3b82f6"
-                  strokeWidth={3}
-                  dot={{ fill: "#3b82f6", strokeWidth: 2, r: 4 }}
-                  activeDot={{ r: 6, fill: "#3b82f6" }}
-                />
-              </LineChart>
-            </ResponsiveContainer>
+            {hourlyLoading ? (
+              <div className="h-[300px] flex items-center justify-center">
+                Loading hourly performance...
+              </div>
+            ) : (
+              <ResponsiveContainer width="100%" height={300}>
+                <LineChart data={hourlyData}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                  <XAxis
+                    dataKey="hour"
+                    axisLine={false}
+                    tickLine={false}
+                    tick={{ fill: "#64748b", fontSize: 12 }}
+                  />
+                  <YAxis
+                    axisLine={false}
+                    tickLine={false}
+                    tick={{ fill: "#64748b", fontSize: 12 }}
+                  />
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: "white",
+                      border: "1px solid #e2e8f0",
+                      borderRadius: "8px",
+                      boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1)",
+                    }}
+                    formatter={(value, name) =>
+                      name === "revenue"
+                        ? [formatCurrency(value), "Revenue"]
+                        : [value, name.charAt(0).toUpperCase() + name.slice(1)]
+                    }
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="orders"
+                    stroke="#3b82f6"
+                    strokeWidth={3}
+                    dot={{ fill: "#3b82f6", strokeWidth: 2, r: 4 }}
+                    activeDot={{ r: 6, fill: "#3b82f6" }}
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            )}
           </div>
 
           {/* Customer Segments */}

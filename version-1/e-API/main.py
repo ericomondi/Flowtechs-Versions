@@ -2226,6 +2226,54 @@ async def get_sales_by_category(
         raise HTTPException(status_code=500, detail="Error fetching sales by category")
 
 
+@app.get("/superadmin/dashboard/hourly-performance", status_code=200)
+async def get_hourly_performance(
+    db: db_dependency,
+    current_user: dict = Depends(require_superadmin),
+    day: str = None,  # Optional: format 'YYYY-MM-DD', defaults to today
+):
+    """
+    Returns hourly orders and revenue for a given day (default: today).
+    """
+    try:
+        if day:
+            target_date = datetime.strptime(day, "%Y-%m-%d").date()
+        else:
+            target_date = datetime.now().date()
+
+        # Prepare 24 hours
+        hours = [f"{h:02d}:00" for h in range(24)]
+        hourly_data = []
+
+        for h in range(24):
+            hour_start = datetime.combine(target_date, datetime.min.time()).replace(
+                hour=h
+            )
+            hour_end = hour_start.replace(minute=59, second=59, microsecond=999999)
+            orders = (
+                db.query(models.Orders)
+                .filter(
+                    models.Orders.datetime >= hour_start,
+                    models.Orders.datetime <= hour_end,
+                    models.Orders.status == models.OrderStatus.DELIVERED,
+                )
+                .all()
+            )
+            revenue = sum(float(order.total) for order in orders)
+            hourly_data.append(
+                {
+                    "hour": f"{h:02d}:00",
+                    "orders": len(orders),
+                    "revenue": revenue,
+                }
+            )
+
+        return {"hourly": hourly_data}
+    except Exception as e:
+        logger.error(f"Error fetching hourly performance: {str(e)}")
+        raise HTTPException(status_code=500, detail="Error fetching hourly performance")
+
+
 if __name__ == "__main__":
     import uvicorn
 
