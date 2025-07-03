@@ -30,21 +30,59 @@ import {
   Calendar,
   Download,
 } from "lucide-react";
+import axios from "axios";
+import { formatCurrency } from "../cart/formatCurrency";
+
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL?.replace(/\/$/, "");
 
 const EcommerceDashboard = () => {
   const [timeRange, setTimeRange] = useState("7d");
   const [selectedMetric, setSelectedMetric] = useState("revenue");
+  const [kpis, setKpis] = useState<any | null>(null);
+  const [kpiLoading, setKpiLoading] = useState(true);
+  const [revenueTrend, setRevenueTrend] = useState<any[]>([]);
+  const [trendLoading, setTrendLoading] = useState(true);
 
-  // Sample data - in real app, this would come from API
-  const salesData = [
-    { date: "2024-06-27", revenue: 12400, orders: 89, visitors: 1240 },
-    { date: "2024-06-28", revenue: 15600, orders: 112, visitors: 1560 },
-    { date: "2024-06-29", revenue: 11200, orders: 78, visitors: 1120 },
-    { date: "2024-06-30", revenue: 18900, orders: 145, visitors: 1890 },
-    { date: "2024-07-01", revenue: 22100, orders: 167, visitors: 2210 },
-    { date: "2024-07-02", revenue: 19800, orders: 134, visitors: 1980 },
-    { date: "2024-07-03", revenue: 25600, orders: 189, visitors: 2560 },
-  ];
+  useEffect(() => {
+    setKpiLoading(true);
+    axios
+      .get(`${API_BASE_URL}/superadmin/dashboard/kpis`, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+      })
+      .then((res) => {
+        setKpis(res.data);
+        setKpiLoading(false);
+      })
+      .catch((err) => {
+        setKpiLoading(false);
+        setKpis(null);
+        console.error(err);
+      });
+  }, []);
+
+  useEffect(() => {
+    setTrendLoading(true);
+    axios
+      .get(`${API_BASE_URL}/superadmin/dashboard/revenue-trend?days=7`, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+      })
+      .then((res) => {
+        setRevenueTrend(res.data.trend);
+        setTrendLoading(false);
+      })
+      .catch((err) => {
+        setTrendLoading(false);
+        setRevenueTrend([]);
+        console.error(err);
+      });
+  }, []);
+
+  // Use revenueTrend for salesData
+  const salesData = revenueTrend;
 
   const categoryData = [
     { name: "Electronics", value: 35, revenue: 45600, color: "#3b82f6" },
@@ -178,40 +216,51 @@ const EcommerceDashboard = () => {
     },
   ];
 
-  const kpiCards = [
-    {
-      title: "Total Revenue",
-      value: "$125,840",
-      change: "+12.5%",
-      trend: "up",
-      icon: DollarSign,
-      color: "bg-gradient-to-r from-blue-500 to-blue-600",
-    },
-    {
-      title: "Total Orders",
-      value: "1,024",
-      change: "+8.2%",
-      trend: "up",
-      icon: ShoppingCart,
-      color: "bg-gradient-to-r from-green-500 to-green-600",
-    },
-    {
-      title: "Active Users",
-      value: "12,640",
-      change: "+15.3%",
-      trend: "up",
-      icon: Users,
-      color: "bg-gradient-to-r from-purple-500 to-purple-600",
-    },
-    {
-      title: "Conversion Rate",
-      value: "3.24%",
-      change: "-2.1%",
-      trend: "down",
-      icon: TrendingUp,
-      color: "bg-gradient-to-r from-orange-500 to-orange-600",
-    },
-  ];
+  // Dynamically build KPI cards if kpis loaded
+  const kpiCards = kpis
+    ? [
+        {
+          title: "Total Revenue",
+          value: formatCurrency(kpis.total_revenue),
+          change: "+0%", // Placeholder for now
+          trend: "up",
+          icon: DollarSign,
+          color: "bg-gradient-to-r from-blue-500 to-blue-600",
+        },
+        {
+          title: "Total Orders",
+          value: kpis.total_orders.toLocaleString(),
+          change: "+0%",
+          trend: "up",
+          icon: ShoppingCart,
+          color: "bg-gradient-to-r from-green-500 to-green-600",
+        },
+        {
+          title: "Active Users",
+          value: kpis.active_users.toLocaleString(),
+          change: "+0%",
+          trend: "up",
+          icon: Users,
+          color: "bg-gradient-to-r from-purple-500 to-purple-600",
+        },
+        {
+          title: "Conversion Rate",
+          value: `${kpis.conversion_rate}%`,
+          change: "+0%",
+          trend: "up",
+          icon: TrendingUp,
+          color: "bg-gradient-to-r from-orange-500 to-orange-600",
+        },
+      ]
+    : [];
+
+  if (kpiLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center text-lg">
+        Loading dashboard KPIs...
+      </div>
+    );
+  }
 
   const getStatusColor = (status) => {
     switch (status) {
@@ -310,53 +359,77 @@ const EcommerceDashboard = () => {
               >
                 <option value="revenue">Revenue</option>
                 <option value="orders">Orders</option>
-                <option value="visitors">Visitors</option>
+                {/* <option value="visitors">Visitors</option> */}
               </select>
             </div>
-            <ResponsiveContainer width="100%" height={300}>
-              <AreaChart data={salesData}>
-                <defs>
-                  <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.8} />
-                    <stop offset="95%" stopColor="#3b82f6" stopOpacity={0.1} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-                <XAxis
-                  dataKey="date"
-                  axisLine={false}
-                  tickLine={false}
-                  tick={{ fill: "#64748b", fontSize: 12 }}
-                  tickFormatter={(value) =>
-                    new Date(value).toLocaleDateString("en-US", {
-                      month: "short",
-                      day: "numeric",
-                    })
-                  }
-                />
-                <YAxis
-                  axisLine={false}
-                  tickLine={false}
-                  tick={{ fill: "#64748b", fontSize: 12 }}
-                />
-                <Tooltip
-                  contentStyle={{
-                    backgroundColor: "white",
-                    border: "1px solid #e2e8f0",
-                    borderRadius: "8px",
-                    boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1)",
-                  }}
-                />
-                <Area
-                  type="monotone"
-                  dataKey={selectedMetric}
-                  stroke="#3b82f6"
-                  fillOpacity={1}
-                  fill="url(#colorRevenue)"
-                  strokeWidth={2}
-                />
-              </AreaChart>
-            </ResponsiveContainer>
+            {trendLoading ? (
+              <div className="h-[300px] flex items-center justify-center">
+                Loading revenue trend...
+              </div>
+            ) : (
+              <ResponsiveContainer width="100%" height={300}>
+                <AreaChart data={salesData}>
+                  <defs>
+                    <linearGradient
+                      id="colorRevenue"
+                      x1="0"
+                      y1="0"
+                      x2="0"
+                      y2="1"
+                    >
+                      <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.8} />
+                      <stop
+                        offset="95%"
+                        stopColor="#3b82f6"
+                        stopOpacity={0.1}
+                      />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                  <XAxis
+                    dataKey="date"
+                    axisLine={false}
+                    tickLine={false}
+                    tick={{ fill: "#64748b", fontSize: 12 }}
+                    tickFormatter={(value) =>
+                      new Date(value).toLocaleDateString("en-US", {
+                        month: "short",
+                        day: "numeric",
+                      })
+                    }
+                  />
+                  <YAxis
+                    axisLine={false}
+                    tickLine={false}
+                    tick={{ fill: "#64748b", fontSize: 12 }}
+                    tickFormatter={
+                      selectedMetric === "revenue" ? formatCurrency : undefined
+                    }
+                  />
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: "white",
+                      border: "1px solid #e2e8f0",
+                      borderRadius: "8px",
+                      boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1)",
+                    }}
+                    formatter={(value, name) =>
+                      name === "revenue"
+                        ? [formatCurrency(value), "Revenue"]
+                        : [value, name.charAt(0).toUpperCase() + name.slice(1)]
+                    }
+                  />
+                  <Area
+                    type="monotone"
+                    dataKey={selectedMetric}
+                    stroke="#3b82f6"
+                    fillOpacity={1}
+                    fill="url(#colorRevenue)"
+                    strokeWidth={2}
+                  />
+                </AreaChart>
+              </ResponsiveContainer>
+            )}
           </div>
 
           {/* Monthly Comparison */}
@@ -617,7 +690,7 @@ const EcommerceDashboard = () => {
                   </div>
                   <div className="text-right">
                     <p className="font-semibold text-gray-900">
-                      ${product.revenue.toLocaleString()}
+                      {formatCurrency(product.revenue)}
                     </p>
                     <div
                       className={`flex items-center gap-1 text-sm ${
@@ -683,7 +756,7 @@ const EcommerceDashboard = () => {
                         {order.customer}
                       </td>
                       <td className="py-3 px-2 text-sm font-semibold text-gray-900">
-                        ${order.amount}
+                        {formatCurrency(order.amount)}
                       </td>
                       <td className="py-3 px-2">
                         <span

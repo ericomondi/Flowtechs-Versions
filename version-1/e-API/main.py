@@ -2028,6 +2028,87 @@ async def remove_banner_image(banner_id: int, user: user_dependency, db: db_depe
         db.rollback()
         logger.error(f"Error removing banner image: {str(e)}")
         raise HTTPException(status_code=500, detail="Error removing banner image")
+    
+
+@app.get("/superadmin/dashboard/kpis", status_code=200)
+async def get_dashboard_kpis(
+    db: db_dependency, current_user: dict = Depends(require_superadmin)
+):
+    """
+    Returns KPIs for dashboard: total revenue, total orders, active users, conversion rate.
+    """
+    try:
+        # Total Revenue (sum of all completed/delivered orders)
+        total_revenue = (
+            db.query(func.sum(models.Orders.total))
+            .filter(models.Orders.status == models.OrderStatus.DELIVERED)
+            .scalar()
+        ) or 0.0
+
+        # Total Orders (all orders)
+        total_orders = db.query(models.Orders).count()
+
+        # Active Users (users who have placed at least 1 order)
+        active_users = (
+            db.query(models.Users)
+            .join(models.Orders, models.Users.id == models.Orders.user_id)
+            .distinct()
+            .count()
+        )
+
+        # Conversion Rate (orders / users * 100)
+        total_users = db.query(models.Users).count()
+        conversion_rate = (total_orders / total_users * 100) if total_users > 0 else 0.0
+
+        return {
+            "total_revenue": float(total_revenue),
+            "total_orders": total_orders,
+            "active_users": active_users,
+            "conversion_rate": round(conversion_rate, 2),
+        }
+    except Exception as e:
+        logger.error(f"Error fetching dashboard KPIs: {str(e)}")
+        raise HTTPException(status_code=500, detail="Error fetching dashboard KPIs")
+
+
+
+@app.get("/superadmin/dashboard/revenue-trend", status_code=200)
+async def get_revenue_trend(
+    db: db_dependency,
+    current_user: dict = Depends(require_superadmin),
+    days: int = 7,
+):
+    """
+    Returns daily revenue and order count for the last N days.
+    """
+    try:
+        today = datetime.now().date()
+        trend = []
+        for i in range(days - 1, -1, -1):
+            day = today - timedelta(days=i)
+            day_start = datetime.combine(day, datetime.min.time())
+            day_end = datetime.combine(day, datetime.max.time())
+            orders = (
+                db.query(models.Orders)
+                .filter(
+                    models.Orders.datetime >= day_start,
+                    models.Orders.datetime <= day_end,
+                    models.Orders.status == models.OrderStatus.DELIVERED,
+                )
+                .all()
+            )
+            revenue = sum(float(order.total) for order in orders)
+            trend.append(
+                {
+                    "date": day.strftime("%Y-%m-%d"),
+                    "revenue": revenue,
+                    "orders": len(orders),
+                }
+            )
+        return {"trend": trend}
+    except Exception as e:
+        logger.error(f"Error fetching revenue trend: {str(e)}")
+        raise HTTPException(status_code=500, detail="Error fetching revenue trend")
 
 
 if __name__ == "__main__":
