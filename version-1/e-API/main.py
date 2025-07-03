@@ -2274,6 +2274,56 @@ async def get_hourly_performance(
         raise HTTPException(status_code=500, detail="Error fetching hourly performance")
 
 
+@app.get("/superadmin/dashboard/top-products", status_code=200)
+async def get_top_products(
+    db: db_dependency,
+    current_user: dict = Depends(require_superadmin),
+    limit: int = 5,
+):
+    """
+    Returns the top N products by sales (quantity and revenue) for the current year.
+    """
+    try:
+        now = datetime.now()
+        year = now.year
+
+        results = (
+            db.query(
+                models.Products.name,
+                func.sum(models.OrderDetails.quantity).label("sales"),
+                func.sum(models.OrderDetails.total_price).label("revenue"),
+            )
+            .join(
+                models.OrderDetails,
+                models.OrderDetails.product_id == models.Products.id,
+            )
+            .join(models.Orders, models.Orders.order_id == models.OrderDetails.order_id)
+            .filter(
+                func.extract("year", models.Orders.datetime) == year,
+                models.Orders.status == models.OrderStatus.DELIVERED,
+            )
+            .group_by(models.Products.id)
+            .order_by(func.sum(models.OrderDetails.quantity).desc())
+            .limit(limit)
+            .all()
+        )
+
+        top_products = [
+            {
+                "name": row.name,
+                "sales": int(row.sales or 0),
+                "revenue": float(row.revenue or 0),
+                # "trend": "up" or "down" (optional, static or calculated)
+            }
+            for row in results
+        ]
+
+        return {"products": top_products}
+    except Exception as e:
+        logger.error(f"Error fetching top products: {str(e)}")
+        raise HTTPException(status_code=500, detail="Error fetching top products")
+
+
 if __name__ == "__main__":
     import uvicorn
 

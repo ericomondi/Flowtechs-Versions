@@ -64,6 +64,8 @@ const EcommerceDashboard = () => {
   const [categoryLoading, setCategoryLoading] = useState(true);
   const [hourlyPerformance, setHourlyPerformance] = useState<any[]>([]);
   const [hourlyLoading, setHourlyLoading] = useState(true);
+  const [topProducts, setTopProducts] = useState<any[]>([]);
+  const [topProductsLoading, setTopProductsLoading] = useState(true);
 
   useEffect(() => {
     setKpiLoading(true);
@@ -160,6 +162,25 @@ const EcommerceDashboard = () => {
       });
   }, []);
 
+  useEffect(() => {
+    setTopProductsLoading(true);
+    axios
+      .get(`${API_BASE_URL}/superadmin/dashboard/top-products`, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+      })
+      .then((res) => {
+        setTopProducts(res.data.products);
+        setTopProductsLoading(false);
+      })
+      .catch((err) => {
+        setTopProductsLoading(false);
+        setTopProducts([]);
+        console.error(err);
+      });
+  }, []);
+
   // Use revenueTrend for salesData
   const salesData = revenueTrend;
 
@@ -168,14 +189,6 @@ const EcommerceDashboard = () => {
 
   // Use hourlyPerformance for hourlyData
   const hourlyData = hourlyPerformance;
-
-  const topProducts = [
-    { name: "iPhone 15 Pro", sales: 234, revenue: 234000, trend: "up" },
-    { name: "MacBook Air M3", sales: 156, revenue: 187200, trend: "up" },
-    { name: "Nike Air Max", sales: 189, revenue: 23625, trend: "down" },
-    { name: "Samsung 4K TV", sales: 98, revenue: 78400, trend: "up" },
-    { name: "Gaming Chair", sales: 145, revenue: 43500, trend: "up" },
-  ];
 
   const trafficSourceData = [
     {
@@ -771,40 +784,35 @@ const EcommerceDashboard = () => {
             <h3 className="text-lg font-semibold text-gray-900 mb-6">
               Top Products
             </h3>
-            <div className="space-y-4">
-              {topProducts.map((product, index) => (
-                <div
-                  key={index}
-                  className="flex items-center justify-between p-3 hover:bg-gray-50 rounded-lg transition-colors"
-                >
-                  <div className="flex-1">
-                    <p className="font-medium text-gray-900">{product.name}</p>
-                    <p className="text-sm text-gray-600">
-                      {product.sales} sales
-                    </p>
-                  </div>
-                  <div className="text-right">
-                    <p className="font-semibold text-gray-900">
-                      {formatCurrency(product.revenue)}
-                    </p>
-                    <div
-                      className={`flex items-center gap-1 text-sm ${
-                        product.trend === "up"
-                          ? "text-green-600"
-                          : "text-red-600"
-                      }`}
-                    >
-                      {product.trend === "up" ? (
-                        <TrendingUp size={14} />
-                      ) : (
-                        <TrendingDown size={14} />
-                      )}
-                      {product.trend === "up" ? "+5.2%" : "-2.1%"}
+            {topProductsLoading ? (
+              <div className="h-[200px] flex items-center justify-center">
+                Loading top products...
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {topProducts.map((product, index) => (
+                  <div
+                    key={index}
+                    className="flex items-center justify-between p-3 hover:bg-gray-50 rounded-lg transition-colors"
+                  >
+                    <div className="flex-1">
+                      <p className="font-medium text-gray-900">
+                        {product.name}
+                      </p>
+                      <p className="text-sm text-gray-600">
+                        {product.sales} sales
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <p className="font-semibold text-gray-900">
+                        {formatCurrency(product.revenue)}
+                      </p>
+                      {/* Trend icon/color can be added if backend provides it */}
                     </div>
                   </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Recent Orders */}
