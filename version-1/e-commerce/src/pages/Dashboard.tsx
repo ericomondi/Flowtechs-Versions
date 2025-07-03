@@ -313,16 +313,18 @@ const EcommerceDashboard = () => {
     );
   }
 
-  const getStatusColor = (status) => {
-    switch (status) {
-      case "Completed":
-        return "bg-green-100 text-green-800";
-      case "Processing":
-        return "bg-yellow-100 text-yellow-800";
-      case "Shipped":
-        return "bg-blue-100 text-blue-800";
+  const getStatusColor = (status: string) => {
+    switch (status.toLowerCase()) {
+      case "delivered":
+        return "bg-gradient-to-r from-green-500 to-green-600 text-white";
+      case "pending":
+        return "bg-gradient-to-r from-yellow-500 to-yellow-600 text-white";
+      case "cancelled":
+        return "bg-gradient-to-r from-red-500 to-red-600 text-white";
+      case "processing":
+        return "bg-gradient-to-r from-blue-500 to-blue-600 text-white";
       default:
-        return "bg-gray-100 text-gray-800";
+        return "bg-gradient-to-r from-gray-500 to-gray-600 text-white";
     }
   };
 
@@ -851,11 +853,13 @@ const EcommerceDashboard = () => {
                         </td>
                         <td className="py-3 px-2">
                           <span
-                            className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(
+                            className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold shadow ${getStatusColor(
                               order.status
                             )}`}
                           >
-                            {order.status}
+                            <span className="w-2 h-2 bg-white rounded-full mr-2 animate-pulse"></span>
+                            {order.status.charAt(0).toUpperCase() +
+                              order.status.slice(1)}
                           </span>
                         </td>
                         <td className="py-3 px-2 text-sm text-gray-600">
