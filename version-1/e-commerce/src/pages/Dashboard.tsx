@@ -350,7 +350,9 @@ const EcommerceDashboard = () => {
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
             <div className="flex items-center justify-between mb-6">
               <h3 className="text-lg font-semibold text-gray-900">
-                Revenue Trend
+                {selectedMetric === "revenue"
+                  ? "Revenue Trend"
+                  : "Orders Trend"}
               </h3>
               <select
                 value={selectedMetric}
@@ -359,7 +361,6 @@ const EcommerceDashboard = () => {
               >
                 <option value="revenue">Revenue</option>
                 <option value="orders">Orders</option>
-                {/* <option value="visitors">Visitors</option> */}
               </select>
             </div>
             {trendLoading ? (
