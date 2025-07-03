@@ -66,6 +66,8 @@ const EcommerceDashboard = () => {
   const [hourlyLoading, setHourlyLoading] = useState(true);
   const [topProducts, setTopProducts] = useState<any[]>([]);
   const [topProductsLoading, setTopProductsLoading] = useState(true);
+  const [recentOrders, setRecentOrders] = useState<any[]>([]);
+  const [recentOrdersLoading, setRecentOrdersLoading] = useState(true);
 
   useEffect(() => {
     setKpiLoading(true);
@@ -181,6 +183,25 @@ const EcommerceDashboard = () => {
       });
   }, []);
 
+  useEffect(() => {
+    setRecentOrdersLoading(true);
+    axios
+      .get(`${API_BASE_URL}/superadmin/dashboard/recent-orders`, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+      })
+      .then((res) => {
+        setRecentOrders(res.data.orders);
+        setRecentOrdersLoading(false);
+      })
+      .catch((err) => {
+        setRecentOrdersLoading(false);
+        setRecentOrders([]);
+        console.error(err);
+      });
+  }, []);
+
   // Use revenueTrend for salesData
   const salesData = revenueTrend;
 
@@ -245,44 +266,6 @@ const EcommerceDashboard = () => {
 
   // Use monthlyComparison for monthlyComparisonData
   const monthlyComparisonData = monthlyComparison;
-
-  const recentOrders = [
-    {
-      id: "#ORD-2024-001",
-      customer: "John Smith",
-      amount: 299.99,
-      status: "Completed",
-      time: "2 mins ago",
-    },
-    {
-      id: "#ORD-2024-002",
-      customer: "Sarah Johnson",
-      amount: 156.5,
-      status: "Processing",
-      time: "5 mins ago",
-    },
-    {
-      id: "#ORD-2024-003",
-      customer: "Mike Chen",
-      amount: 89.99,
-      status: "Shipped",
-      time: "12 mins ago",
-    },
-    {
-      id: "#ORD-2024-004",
-      customer: "Emily Davis",
-      amount: 445.0,
-      status: "Completed",
-      time: "18 mins ago",
-    },
-    {
-      id: "#ORD-2024-005",
-      customer: "Alex Wilson",
-      amount: 67.25,
-      status: "Processing",
-      time: "25 mins ago",
-    },
-  ];
 
   // Dynamically build KPI cards if kpis loaded
   const kpiCards = kpis
@@ -826,57 +809,63 @@ const EcommerceDashboard = () => {
               </button>
             </div>
             <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b border-gray-200">
-                    <th className="text-left py-3 px-2 text-sm font-medium text-gray-600">
-                      Order ID
-                    </th>
-                    <th className="text-left py-3 px-2 text-sm font-medium text-gray-600">
-                      Customer
-                    </th>
-                    <th className="text-left py-3 px-2 text-sm font-medium text-gray-600">
-                      Amount
-                    </th>
-                    <th className="text-left py-3 px-2 text-sm font-medium text-gray-600">
-                      Status
-                    </th>
-                    <th className="text-left py-3 px-2 text-sm font-medium text-gray-600">
-                      Time
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {recentOrders.map((order, index) => (
-                    <tr
-                      key={index}
-                      className="border-b border-gray-100 hover:bg-gray-50"
-                    >
-                      <td className="py-3 px-2 text-sm font-medium text-blue-600">
-                        {order.id}
-                      </td>
-                      <td className="py-3 px-2 text-sm text-gray-900">
-                        {order.customer}
-                      </td>
-                      <td className="py-3 px-2 text-sm font-semibold text-gray-900">
-                        {formatCurrency(order.amount)}
-                      </td>
-                      <td className="py-3 px-2">
-                        <span
-                          className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(
-                            order.status
-                          )}`}
-                        >
-                          {order.status}
-                        </span>
-                      </td>
-                      <td className="py-3 px-2 text-sm text-gray-600">
-                        {order.time}
-                      </td>
+              {recentOrdersLoading ? (
+                <div className="h-[200px] flex items-center justify-center">
+                  Loading recent orders...
+                </div>
+              ) : (
+                <table className="w-full">
+                  <thead>
+                    <tr className="border-b border-gray-200">
+                      <th className="text-left py-3 px-2 text-sm font-medium text-gray-600">
+                        Order ID
+                      </th>
+                      <th className="text-left py-3 px-2 text-sm font-medium text-gray-600">
+                        Customer
+                      </th>
+                      <th className="text-left py-3 px-2 text-sm font-medium text-gray-600">
+                        Amount
+                      </th>
+                      <th className="text-left py-3 px-2 text-sm font-medium text-gray-600">
+                        Status
+                      </th>
+                      <th className="text-left py-3 px-2 text-sm font-medium text-gray-600">
+                        Time
+                      </th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody>
+                    {recentOrders.map((order, index) => (
+                      <tr
+                        key={index}
+                        className="border-b border-gray-100 hover:bg-gray-50"
+                      >
+                        <td className="py-3 px-2 text-sm font-medium text-blue-600">
+                          {order.id}
+                        </td>
+                        <td className="py-3 px-2 text-sm text-gray-900">
+                          {order.customer}
+                        </td>
+                        <td className="py-3 px-2 text-sm font-semibold text-gray-900">
+                          {formatCurrency(order.amount)}
+                        </td>
+                        <td className="py-3 px-2">
+                          <span
+                            className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(
+                              order.status
+                            )}`}
+                          >
+                            {order.status}
+                          </span>
+                        </td>
+                        <td className="py-3 px-2 text-sm text-gray-600">
+                          {order.time}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
             </div>
           </div>
         </div>

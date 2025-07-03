@@ -2324,6 +2324,51 @@ async def get_top_products(
         raise HTTPException(status_code=500, detail="Error fetching top products")
 
 
+@app.get("/superadmin/dashboard/recent-orders", status_code=200)
+async def get_recent_orders(
+    db: db_dependency,
+    current_user: dict = Depends(require_superadmin),
+    limit: int = 5,
+):
+    """
+    Returns the most recent N orders with customer info.
+    """
+    try:
+        orders = (
+            db.query(
+                models.Orders.order_id,
+                models.Orders.total,
+                models.Orders.status,
+                models.Orders.datetime,
+                models.Users.username,
+            )
+            .join(models.Users, models.Orders.user_id == models.Users.id)
+            .order_by(models.Orders.datetime.desc())
+            .limit(limit)
+            .all()
+        )
+
+        recent_orders = [
+            {
+                "id": f"#ORD-{order.order_id}",
+                "customer": order.username,
+                "amount": float(order.total or 0),
+                "status": (
+                    order.status.value
+                    if hasattr(order.status, "value")
+                    else str(order.status)
+                ),
+                "time": order.datetime.strftime("%Y-%m-%d %H:%M"),
+            }
+            for order in orders
+        ]
+
+        return {"orders": recent_orders}
+    except Exception as e:
+        logger.error(f"Error fetching recent orders: {str(e)}")
+        raise HTTPException(status_code=500, detail="Error fetching recent orders")
+
+
 if __name__ == "__main__":
     import uvicorn
 
