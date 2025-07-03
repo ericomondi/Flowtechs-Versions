@@ -61,7 +61,7 @@ from auth import (
     send_admin_new_order_notification,
 )
 from fastapi.middleware.cors import CORSMiddleware
-from sqlalchemy import func, or_
+from sqlalchemy import func, or_, extract
 from datetime import datetime, timedelta
 import logging
 from dotenv import load_dotenv
@@ -2028,7 +2028,7 @@ async def remove_banner_image(banner_id: int, user: user_dependency, db: db_depe
         db.rollback()
         logger.error(f"Error removing banner image: {str(e)}")
         raise HTTPException(status_code=500, detail="Error removing banner image")
-    
+
 
 @app.get("/superadmin/dashboard/kpis", status_code=200)
 async def get_dashboard_kpis(
@@ -2071,7 +2071,6 @@ async def get_dashboard_kpis(
         raise HTTPException(status_code=500, detail="Error fetching dashboard KPIs")
 
 
-
 @app.get("/superadmin/dashboard/revenue-trend", status_code=200)
 async def get_revenue_trend(
     db: db_dependency,
@@ -2109,6 +2108,71 @@ async def get_revenue_trend(
     except Exception as e:
         logger.error(f"Error fetching revenue trend: {str(e)}")
         raise HTTPException(status_code=500, detail="Error fetching revenue trend")
+
+
+@app.get("/superadmin/dashboard/monthly-revenue-comparison", status_code=200)
+async def get_monthly_revenue_comparison(
+    db: db_dependency,
+    current_user: dict = Depends(require_superadmin),
+):
+    """
+    Returns monthly revenue for this year and last year for comparison.
+    """
+    try:
+        now = datetime.now()
+        this_year = now.year
+        last_year = this_year - 1
+
+        def get_monthly_revenue(year):
+            # Returns a dict: {1: revenue, 2: revenue, ..., 12: revenue}
+            results = (
+                db.query(
+                    extract("month", models.Orders.datetime).label("month"),
+                    func.sum(models.Orders.total).label("revenue"),
+                )
+                .filter(
+                    extract("year", models.Orders.datetime) == year,
+                    models.Orders.status == models.OrderStatus.DELIVERED,
+                )
+                .group_by("month")
+                .all()
+            )
+            return {int(month): float(revenue or 0) for month, revenue in results}
+
+        this_year_data = get_monthly_revenue(this_year)
+        last_year_data = get_monthly_revenue(last_year)
+
+        # Build a list for all months
+        months = [
+            "Jan",
+            "Feb",
+            "Mar",
+            "Apr",
+            "May",
+            "Jun",
+            "Jul",
+            "Aug",
+            "Sep",
+            "Oct",
+            "Nov",
+            "Dec",
+        ]
+        comparison = []
+        for i, month_name in enumerate(months, 1):
+            comparison.append(
+                {
+                    "month": month_name,
+                    "thisYear": this_year_data.get(i, 0),
+                    "lastYear": last_year_data.get(i, 0),
+                }
+            )
+
+        return {"comparison": comparison}
+    except Exception as e:
+        logger.error(f"Error fetching monthly revenue comparison: {str(e)}")
+        raise HTTPException(
+            status_code=500, detail="Error fetching monthly revenue comparison"
+        )
 
 
 if __name__ == "__main__":

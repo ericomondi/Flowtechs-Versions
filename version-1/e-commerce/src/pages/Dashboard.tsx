@@ -42,6 +42,8 @@ const EcommerceDashboard = () => {
   const [kpiLoading, setKpiLoading] = useState(true);
   const [revenueTrend, setRevenueTrend] = useState<any[]>([]);
   const [trendLoading, setTrendLoading] = useState(true);
+  const [monthlyComparison, setMonthlyComparison] = useState<any[]>([]);
+  const [monthlyLoading, setMonthlyLoading] = useState(true);
 
   useEffect(() => {
     setKpiLoading(true);
@@ -77,6 +79,25 @@ const EcommerceDashboard = () => {
       .catch((err) => {
         setTrendLoading(false);
         setRevenueTrend([]);
+        console.error(err);
+      });
+  }, []);
+
+  useEffect(() => {
+    setMonthlyLoading(true);
+    axios
+      .get(`${API_BASE_URL}/superadmin/dashboard/monthly-revenue-comparison`, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+      })
+      .then((res) => {
+        setMonthlyComparison(res.data.comparison);
+        setMonthlyLoading(false);
+      })
+      .catch((err) => {
+        setMonthlyLoading(false);
+        setMonthlyComparison([]);
         console.error(err);
       });
   }, []);
@@ -168,15 +189,8 @@ const EcommerceDashboard = () => {
     { stage: "Purchase", count: 1024, percentage: 8.1, color: "#8b5cf6" },
   ];
 
-  const monthlyComparisonData = [
-    { month: "Jan", thisYear: 45600, lastYear: 42300 },
-    { month: "Feb", thisYear: 52400, lastYear: 48900 },
-    { month: "Mar", thisYear: 61200, lastYear: 55600 },
-    { month: "Apr", thisYear: 58900, lastYear: 61200 },
-    { month: "May", thisYear: 67800, lastYear: 63400 },
-    { month: "Jun", thisYear: 74500, lastYear: 69800 },
-    { month: "Jul", thisYear: 82300, lastYear: 76100 },
-  ];
+  // Use monthlyComparison for monthlyComparisonData
+  const monthlyComparisonData = monthlyComparison;
 
   const recentOrders = [
     {
@@ -438,32 +452,51 @@ const EcommerceDashboard = () => {
             <h3 className="text-lg font-semibold text-gray-900 mb-6">
               Monthly Revenue Comparison
             </h3>
-            <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={monthlyComparisonData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-                <XAxis
-                  dataKey="month"
-                  axisLine={false}
-                  tickLine={false}
-                  tick={{ fill: "#64748b", fontSize: 12 }}
-                />
-                <YAxis
-                  axisLine={false}
-                  tickLine={false}
-                  tick={{ fill: "#64748b", fontSize: 12 }}
-                />
-                <Tooltip
-                  contentStyle={{
-                    backgroundColor: "white",
-                    border: "1px solid #e2e8f0",
-                    borderRadius: "8px",
-                    boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1)",
-                  }}
-                />
-                <Bar dataKey="thisYear" fill="#3b82f6" radius={[4, 4, 0, 0]} />
-                <Bar dataKey="lastYear" fill="#e2e8f0" radius={[4, 4, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
+            {monthlyLoading ? (
+              <div className="h-[300px] flex items-center justify-center">
+                Loading monthly revenue...
+              </div>
+            ) : (
+              <ResponsiveContainer width="100%" height={300}>
+                <BarChart data={monthlyComparisonData}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                  <XAxis
+                    dataKey="month"
+                    axisLine={false}
+                    tickLine={false}
+                    tick={{ fill: "#64748b", fontSize: 12 }}
+                  />
+                  <YAxis
+                    axisLine={false}
+                    tickLine={false}
+                    tick={{ fill: "#64748b", fontSize: 12 }}
+                    tickFormatter={formatCurrency}
+                  />
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: "white",
+                      border: "1px solid #e2e8f0",
+                      borderRadius: "8px",
+                      boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1)",
+                    }}
+                    formatter={(value, name) => [
+                      formatCurrency(value),
+                      name === "thisYear" ? "This Year" : "Last Year",
+                    ]}
+                  />
+                  <Bar
+                    dataKey="thisYear"
+                    fill="#3b82f6"
+                    radius={[4, 4, 0, 0]}
+                  />
+                  <Bar
+                    dataKey="lastYear"
+                    fill="#e2e8f0"
+                    radius={[4, 4, 0, 0]}
+                  />
+                </BarChart>
+              </ResponsiveContainer>
+            )}
             <div className="mt-4 flex justify-center gap-6">
               <div className="flex items-center gap-2">
                 <div className="w-3 h-3 rounded-full bg-blue-500"></div>
