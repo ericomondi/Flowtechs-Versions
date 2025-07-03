@@ -2175,6 +2175,57 @@ async def get_monthly_revenue_comparison(
         )
 
 
+@app.get("/superadmin/dashboard/sales-by-category", status_code=200)
+async def get_sales_by_category(
+    db: db_dependency,
+    current_user: dict = Depends(require_superadmin),
+):
+    """
+    Returns sales (revenue and percentage) by category for the current year.
+    """
+    try:
+        now = datetime.now()
+        year = now.year
+
+        # Get revenue per category for delivered orders this year
+        results = (
+            db.query(
+                models.Categories.name,
+                func.sum(models.Orders.total).label("revenue"),
+            )
+            .join(models.Products, models.Products.category_id == models.Categories.id)
+            .join(
+                models.OrderDetails,
+                models.OrderDetails.product_id == models.Products.id,
+            )
+            .join(models.Orders, models.Orders.order_id == models.OrderDetails.order_id)
+            .filter(
+                func.extract("year", models.Orders.datetime) == year,
+                models.Orders.status == models.OrderStatus.DELIVERED,
+            )
+            .group_by(models.Categories.id)
+            .all()
+        )
+
+        total_revenue = (
+            sum(float(row.revenue or 0) for row in results) or 1
+        )  # avoid division by zero
+
+        category_data = [
+            {
+                "name": row.name,
+                "revenue": float(row.revenue or 0),
+                "value": round(float(row.revenue or 0) / total_revenue * 100, 2),
+            }
+            for row in results
+        ]
+
+        return {"categories": category_data}
+    except Exception as e:
+        logger.error(f"Error fetching sales by category: {str(e)}")
+        raise HTTPException(status_code=500, detail="Error fetching sales by category")
+
+
 if __name__ == "__main__":
     import uvicorn
 

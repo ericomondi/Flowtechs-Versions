@@ -35,6 +35,22 @@ import { formatCurrency } from "../cart/formatCurrency";
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL?.replace(/\/$/, "");
 
+// Define a color palette for the pie chart
+const COLORS = [
+  "#3b82f6", // blue
+  "#10b981", // green
+  "#f59e0b", // yellow
+  "#ef4444", // red
+  "#8b5cf6", // purple
+  "#6366f1", // indigo
+  "#f472b6", // pink
+  "#22d3ee", // cyan
+  "#f87171", // rose
+  "#a3e635", // lime
+  "#fbbf24", // amber
+  "#eab308", // gold
+];
+
 const EcommerceDashboard = () => {
   const [timeRange, setTimeRange] = useState("7d");
   const [selectedMetric, setSelectedMetric] = useState("revenue");
@@ -44,6 +60,8 @@ const EcommerceDashboard = () => {
   const [trendLoading, setTrendLoading] = useState(true);
   const [monthlyComparison, setMonthlyComparison] = useState<any[]>([]);
   const [monthlyLoading, setMonthlyLoading] = useState(true);
+  const [categorySales, setCategorySales] = useState<any[]>([]);
+  const [categoryLoading, setCategoryLoading] = useState(true);
 
   useEffect(() => {
     setKpiLoading(true);
@@ -102,16 +120,30 @@ const EcommerceDashboard = () => {
       });
   }, []);
 
+  useEffect(() => {
+    setCategoryLoading(true);
+    axios
+      .get(`${API_BASE_URL}/superadmin/dashboard/sales-by-category`, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+      })
+      .then((res) => {
+        setCategorySales(res.data.categories);
+        setCategoryLoading(false);
+      })
+      .catch((err) => {
+        setCategoryLoading(false);
+        setCategorySales([]);
+        console.error(err);
+      });
+  }, []);
+
   // Use revenueTrend for salesData
   const salesData = revenueTrend;
 
-  const categoryData = [
-    { name: "Electronics", value: 35, revenue: 45600, color: "#3b82f6" },
-    { name: "Clothing", value: 28, revenue: 32400, color: "#10b981" },
-    { name: "Home & Garden", value: 20, revenue: 28900, color: "#f59e0b" },
-    { name: "Books", value: 10, revenue: 15200, color: "#ef4444" },
-    { name: "Sports", value: 7, revenue: 12800, color: "#8b5cf6" },
-  ];
+  // Use categorySales for categoryData
+  const categoryData = categorySales;
 
   const topProducts = [
     { name: "iPhone 15 Pro", sales: 234, revenue: 234000, trend: "up" },
@@ -517,45 +549,54 @@ const EcommerceDashboard = () => {
             <h3 className="text-lg font-semibold text-gray-900 mb-6">
               Sales by Category
             </h3>
-            <ResponsiveContainer width="100%" height={250}>
-              <PieChart>
-                <Pie
-                  data={categoryData}
-                  cx="50%"
-                  cy="50%"
-                  innerRadius={50}
-                  outerRadius={100}
-                  paddingAngle={5}
-                  dataKey="value"
-                >
-                  {categoryData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.color} />
-                  ))}
-                </Pie>
-                <Tooltip
-                  formatter={(value, name, props) => [`${value}%`, "Share"]}
-                  contentStyle={{
-                    backgroundColor: "white",
-                    border: "1px solid #e2e8f0",
-                    borderRadius: "8px",
-                  }}
-                />
-              </PieChart>
-            </ResponsiveContainer>
+            {categoryLoading ? (
+              <div className="h-[250px] flex items-center justify-center">
+                Loading category sales...
+              </div>
+            ) : (
+              <ResponsiveContainer width="100%" height={250}>
+                <PieChart>
+                  <Pie
+                    data={categoryData}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={50}
+                    outerRadius={100}
+                    paddingAngle={5}
+                    dataKey="value"
+                  >
+                    {categoryData.map((entry, index) => (
+                      <Cell
+                        key={`cell-${index}`}
+                        fill={COLORS[index % COLORS.length]}
+                      />
+                    ))}
+                  </Pie>
+                  <Tooltip
+                    formatter={(value, name, props) => [`${value}%`, "Share"]}
+                    contentStyle={{
+                      backgroundColor: "white",
+                      border: "1px solid #e2e8f0",
+                      borderRadius: "8px",
+                    }}
+                  />
+                </PieChart>
+              </ResponsiveContainer>
+            )}
             <div className="mt-4 space-y-2">
               {categoryData.map((category, index) => (
                 <div key={index} className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <div
                       className="w-3 h-3 rounded-full"
-                      style={{ backgroundColor: category.color }}
+                      style={{ backgroundColor: COLORS[index % COLORS.length] }}
                     ></div>
                     <span className="text-sm text-gray-600">
                       {category.name}
                     </span>
                   </div>
                   <span className="text-sm font-medium text-gray-900">
-                    {category.value}%
+                    {category.value}% ({formatCurrency(category.revenue)})
                   </span>
                 </div>
               ))}
