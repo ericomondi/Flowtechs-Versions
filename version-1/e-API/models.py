@@ -63,6 +63,13 @@ class Users(Base):
     reviews = relationship(
         "Review", back_populates="user", cascade="all, delete-orphan"
     )
+    # Add these relationships for analytics
+    traffic_sources = relationship(
+        "TrafficSource", back_populates="user", cascade="all, delete-orphan"
+    )
+    funnel_events = relationship(
+        "FunnelEvent", back_populates="user", cascade="all, delete-orphan"
+    )
 
 
 class Categories(Base):
@@ -291,3 +298,29 @@ class NewsletterSubscriber(Base):
     email = Column(String(200), unique=True, index=True, nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow)
     is_active = Column(Boolean, default=True)
+
+
+class TrafficSource(Base):
+    __tablename__ = "traffic_sources"
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    referrer = Column(String(255), nullable=True)
+    utm_source = Column(String(100), nullable=True)
+    utm_medium = Column(String(100), nullable=True)
+    utm_campaign = Column(String(100), nullable=True)
+    session_id = Column(String(100), nullable=True)
+    timestamp = Column(DateTime, default=datetime.utcnow)
+
+    user = relationship("Users", back_populates="traffic_sources")
+
+
+class FunnelEvent(Base):
+    __tablename__ = "funnel_events"
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    session_id = Column(String(100), nullable=True)
+    event = Column(String(100), nullable=False)  # e.g., 'visit', 'add_to_cart', etc.
+    timestamp = Column(DateTime, default=datetime.utcnow)
+    extra_data = Column(JSON, nullable=True)
+
+    user = relationship("Users", back_populates="funnel_events")

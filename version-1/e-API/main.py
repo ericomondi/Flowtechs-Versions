@@ -6,6 +6,7 @@ from fastapi import (
     UploadFile,
     File,
     Query,
+    Body,
 )
 from pydantic_models import (
     ProductsBase,
@@ -2367,6 +2368,88 @@ async def get_recent_orders(
     except Exception as e:
         logger.error(f"Error fetching recent orders: {str(e)}")
         raise HTTPException(status_code=500, detail="Error fetching recent orders")
+
+
+@app.post("/api/track-visit")
+async def track_visit(
+    db: db_dependency,
+    data: dict = Body(...),
+    user: dict = Depends(
+        get_active_user
+    ),  # Optional: if you want to link to logged-in user
+):
+    try:
+        traffic = models.TrafficSource(
+            user_id=user.get("id") if user else None,
+            referrer=data.get("referrer"),
+            utm_source=data.get("utm_source"),
+            utm_medium=data.get("utm_medium"),
+            utm_campaign=data.get("utm_campaign"),
+            session_id=data.get("session_id"),
+            timestamp=(
+                datetime.fromisoformat(data.get("timestamp"))
+                if data.get("timestamp")
+                else datetime.utcnow()
+            ),
+        )
+        db.add(traffic)
+        db.commit()
+        return {"message": "Traffic source recorded"}
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(
+            status_code=500, detail=f"Error recording traffic source: {str(e)}"
+        )
+
+
+@app.post("/api/track-funnel")
+async def track_funnel(
+    db: db_dependency,
+    data: dict = Body(...),
+    user: dict = Depends(get_active_user),  # Optional
+):
+    try:
+        funnel = models.FunnelEvent(
+            user_id=user.get("id") if user else None,
+            session_id=data.get("session_id"),
+            event=data.get("event"),
+            timestamp=(
+                datetime.fromisoformat(data.get("timestamp"))
+                if data.get("timestamp")
+                else datetime.utcnow()
+            ),
+            extra_data=data.get("extra_data"),
+        )
+        db.add(funnel)
+        db.commit()
+        return {"message": "Funnel event recorded"}
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(
+            status_code=500, detail=f"Error recording funnel event: {str(e)}"
+        )
+
+
+@app.get("/admin/traffic-sources-summary")
+async def traffic_sources_summary(db: db_dependency, user: user_dependency):
+    require_admin(user)
+    results = (
+        db.query(models.TrafficSource.utm_source, func.count(models.TrafficSource.id))
+        .group_by(models.TrafficSource.utm_source)
+        .all()
+    )
+    return [{"utm_source": r[0], "count": r[1]} for r in results]
+
+
+@app.get("/admin/funnel-summary")
+async def funnel_summary(db: db_dependency, user: user_dependency):
+    require_admin(user)
+    results = (
+        db.query(models.FunnelEvent.event, func.count(models.FunnelEvent.id))
+        .group_by(models.FunnelEvent.event)
+        .all()
+    )
+    return [{"event": r[0], "count": r[1]} for r in results]
 
 
 if __name__ == "__main__":

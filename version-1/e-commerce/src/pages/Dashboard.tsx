@@ -68,6 +68,10 @@ const EcommerceDashboard = () => {
   const [topProductsLoading, setTopProductsLoading] = useState(true);
   const [recentOrders, setRecentOrders] = useState<any[]>([]);
   const [recentOrdersLoading, setRecentOrdersLoading] = useState(true);
+  const [trafficSourceData, setTrafficSourceData] = useState<any[]>([]);
+  const [trafficLoading, setTrafficLoading] = useState(true);
+  const [conversionFunnelData, setConversionFunnelData] = useState<any[]>([]);
+  const [funnelLoading, setFunnelLoading] = useState(true);
 
   useEffect(() => {
     setKpiLoading(true);
@@ -202,6 +206,72 @@ const EcommerceDashboard = () => {
       });
   }, []);
 
+  // Fetch traffic sources from API
+  useEffect(() => {
+    setTrafficLoading(true);
+    axios
+      .get(`${API_BASE_URL}/admin/traffic-sources-summary`, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+      })
+      .then((res) => {
+        const total =
+          res.data.reduce((sum: number, src: any) => sum + src.count, 0) || 1;
+        const colorPalette = COLORS;
+        const mapped = res.data.map((src: any, idx: number) => ({
+          source: src.utm_source || "Direct/Unknown",
+          visitors: src.count,
+          percentage: Math.round((src.count / total) * 100),
+          color: colorPalette[idx % colorPalette.length],
+        }));
+        setTrafficSourceData(mapped);
+        setTrafficLoading(false);
+      })
+      .catch((err) => {
+        setTrafficLoading(false);
+        setTrafficSourceData([]);
+        console.error(err);
+      });
+  }, []);
+
+  // Fetch conversion funnel from API
+  useEffect(() => {
+    setFunnelLoading(true);
+    axios
+      .get(`${API_BASE_URL}/admin/funnel-summary`, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+      })
+      .then((res) => {
+        const funnelStages = [
+          { key: "visit", label: "Visitors", color: "#3b82f6" },
+          { key: "product_view", label: "Product Views", color: "#10b981" },
+          { key: "add_to_cart", label: "Add to Cart", color: "#f59e0b" },
+          { key: "checkout", label: "Checkout", color: "#ef4444" },
+          { key: "purchase", label: "Purchase", color: "#8b5cf6" },
+        ];
+        const dataMap = Object.fromEntries(
+          res.data.map((d: any) => [d.event, d.count])
+        );
+        const total = dataMap["visit"] || 1;
+        const mapped = funnelStages.map((stage) => ({
+          stage: stage.label,
+          count: dataMap[stage.key] || 0,
+          percentage: Math.round(((dataMap[stage.key] || 0) / total) * 100),
+          color: stage.color,
+        }));
+        setConversionFunnelData(mapped);
+        setFunnelLoading(false);
+      })
+      .catch((err) => {
+        setFunnelLoading(false);
+        setConversionFunnelData([]);
+        console.error(err);
+      });
+  }, []);
+
   // Use revenueTrend for salesData
   const salesData = revenueTrend;
 
@@ -210,34 +280,6 @@ const EcommerceDashboard = () => {
 
   // Use hourlyPerformance for hourlyData
   const hourlyData = hourlyPerformance;
-
-  const trafficSourceData = [
-    {
-      source: "Organic Search",
-      visitors: 4580,
-      percentage: 42,
-      color: "#3b82f6",
-    },
-    {
-      source: "Social Media",
-      visitors: 2340,
-      percentage: 21,
-      color: "#10b981",
-    },
-    {
-      source: "Direct Traffic",
-      visitors: 1890,
-      percentage: 17,
-      color: "#f59e0b",
-    },
-    {
-      source: "Email Campaign",
-      visitors: 1200,
-      percentage: 11,
-      color: "#ef4444",
-    },
-    { source: "Paid Ads", visitors: 990, percentage: 9, color: "#8b5cf6" },
-  ];
 
   const customerSegmentData = [
     { segment: "New Customers", count: 1240, revenue: 45600, avgOrder: 36.77 },
@@ -254,14 +296,6 @@ const EcommerceDashboard = () => {
       revenue: 12400,
       avgOrder: 13.93,
     },
-  ];
-
-  const conversionFunnelData = [
-    { stage: "Visitors", count: 12640, percentage: 100, color: "#3b82f6" },
-    { stage: "Product Views", count: 8950, percentage: 70.8, color: "#10b981" },
-    { stage: "Add to Cart", count: 3420, percentage: 27.1, color: "#f59e0b" },
-    { stage: "Checkout", count: 1890, percentage: 14.9, color: "#ef4444" },
-    { stage: "Purchase", count: 1024, percentage: 8.1, color: "#8b5cf6" },
   ];
 
   // Use monthlyComparison for monthlyComparisonData
@@ -615,32 +649,38 @@ const EcommerceDashboard = () => {
             <h3 className="text-lg font-semibold text-gray-900 mb-6">
               Traffic Sources
             </h3>
-            <div className="space-y-4">
-              {trafficSourceData.map((source, index) => (
-                <div key={index} className="space-y-2">
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm font-medium text-gray-700">
-                      {source.source}
-                    </span>
-                    <span className="text-sm text-gray-600">
-                      {source.percentage}%
-                    </span>
+            {trafficLoading ? (
+              <div className="h-[250px] flex items-center justify-center">
+                Loading traffic sources...
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {trafficSourceData.map((source, index) => (
+                  <div key={index} className="space-y-2">
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm font-medium text-gray-700">
+                        {source.source}
+                      </span>
+                      <span className="text-sm text-gray-600">
+                        {source.percentage}%
+                      </span>
+                    </div>
+                    <div className="w-full bg-gray-200 rounded-full h-2">
+                      <div
+                        className="h-2 rounded-full transition-all duration-300"
+                        style={{
+                          width: `${source.percentage}%`,
+                          backgroundColor: source.color,
+                        }}
+                      ></div>
+                    </div>
+                    <div className="text-xs text-gray-500">
+                      {source.visitors.toLocaleString()} visitors
+                    </div>
                   </div>
-                  <div className="w-full bg-gray-200 rounded-full h-2">
-                    <div
-                      className="h-2 rounded-full transition-all duration-300"
-                      style={{
-                        width: `${source.percentage}%`,
-                        backgroundColor: source.color,
-                      }}
-                    ></div>
-                  </div>
-                  <div className="text-xs text-gray-500">
-                    {source.visitors.toLocaleString()} visitors
-                  </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Conversion Funnel */}
@@ -648,29 +688,35 @@ const EcommerceDashboard = () => {
             <h3 className="text-lg font-semibold text-gray-900 mb-6">
               Conversion Funnel
             </h3>
-            <div className="space-y-3">
-              {conversionFunnelData.map((stage, index) => (
-                <div key={index} className="relative">
-                  <div className="flex justify-between items-center mb-1">
-                    <span className="text-sm font-medium text-gray-700">
-                      {stage.stage}
-                    </span>
-                    <span className="text-sm text-gray-600">
-                      {stage.percentage}%
-                    </span>
+            {funnelLoading ? (
+              <div className="h-[250px] flex items-center justify-center">
+                Loading conversion funnel...
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {conversionFunnelData.map((stage, index) => (
+                  <div key={index} className="relative">
+                    <div className="flex justify-between items-center mb-1">
+                      <span className="text-sm font-medium text-gray-700">
+                        {stage.stage}
+                      </span>
+                      <span className="text-sm text-gray-600">
+                        {stage.percentage}%
+                      </span>
+                    </div>
+                    <div
+                      className="h-8 rounded-lg flex items-center justify-center text-white text-sm font-medium transition-all duration-300"
+                      style={{
+                        backgroundColor: stage.color,
+                        width: `${stage.percentage}%`,
+                      }}
+                    >
+                      {stage.count.toLocaleString()}
+                    </div>
                   </div>
-                  <div
-                    className="h-8 rounded-lg flex items-center justify-center text-white text-sm font-medium transition-all duration-300"
-                    style={{
-                      backgroundColor: stage.color,
-                      width: `${stage.percentage}%`,
-                    }}
-                  >
-                    {stage.count.toLocaleString()}
-                  </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
 
