@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import {
   LineChart,
   Line,
@@ -17,17 +17,11 @@ import {
 } from "recharts";
 import {
   TrendingUp,
-  TrendingDown,
   DollarSign,
   ShoppingCart,
   Users,
-  Package,
-  Eye,
-  Star,
   ArrowUpRight,
   ArrowDownRight,
-  Filter,
-  Calendar,
   Download,
 } from "lucide-react";
 import axios from "axios";
@@ -479,7 +473,7 @@ const EcommerceDashboard = () => {
                     axisLine={false}
                     tickLine={false}
                     tick={{ fill: "#64748b", fontSize: 12 }}
-                    tickFormatter={(value) =>
+                    tickFormatter={(value: any) =>
                       new Date(value).toLocaleDateString("en-US", {
                         month: "short",
                         day: "numeric",
@@ -490,8 +484,10 @@ const EcommerceDashboard = () => {
                     axisLine={false}
                     tickLine={false}
                     tick={{ fill: "#64748b", fontSize: 12 }}
-                    tickFormatter={
-                      selectedMetric === "revenue" ? formatCurrency : undefined
+                    tickFormatter={(value: any, _index: number) =>
+                      selectedMetric === "revenue"
+                        ? formatCurrency(value)
+                        : String(value)
                     }
                   />
                   <Tooltip
@@ -501,10 +497,10 @@ const EcommerceDashboard = () => {
                       borderRadius: "8px",
                       boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1)",
                     }}
-                    formatter={(value, name) =>
+                    formatter={(value: any, name: any) =>
                       name === "revenue"
                         ? [formatCurrency(value), "Revenue"]
-                        : [value, name.charAt(0).toUpperCase() + name.slice(1)]
+                        : [String(value), String(name)]
                     }
                   />
                   <Area
@@ -543,7 +539,9 @@ const EcommerceDashboard = () => {
                     axisLine={false}
                     tickLine={false}
                     tick={{ fill: "#64748b", fontSize: 12 }}
-                    tickFormatter={formatCurrency}
+                    tickFormatter={(value: any, _index: number) =>
+                      formatCurrency(value)
+                    }
                   />
                   <Tooltip
                     contentStyle={{
@@ -552,9 +550,9 @@ const EcommerceDashboard = () => {
                       borderRadius: "8px",
                       boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1)",
                     }}
-                    formatter={(value, name) => [
+                    formatter={(value: any, _name: any, _props: any) => [
                       formatCurrency(value),
-                      name === "thisYear" ? "This Year" : "Last Year",
+                      _name === "thisYear" ? "This Year" : "Last Year",
                     ]}
                   />
                   <Bar
@@ -606,7 +604,7 @@ const EcommerceDashboard = () => {
                     paddingAngle={5}
                     dataKey="value"
                   >
-                    {categoryData.map((entry, index) => (
+                    {categoryData.map((_, index) => (
                       <Cell
                         key={`cell-${index}`}
                         fill={COLORS[index % COLORS.length]}
@@ -614,7 +612,10 @@ const EcommerceDashboard = () => {
                     ))}
                   </Pie>
                   <Tooltip
-                    formatter={(value, name, props) => [`${value}%`, "Share"]}
+                    formatter={(value: any, _name: any, _props: any) => [
+                      `${value}%`,
+                      "Share",
+                    ]}
                     contentStyle={{
                       backgroundColor: "white",
                       border: "1px solid #e2e8f0",
@@ -756,10 +757,10 @@ const EcommerceDashboard = () => {
                       borderRadius: "8px",
                       boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1)",
                     }}
-                    formatter={(value, name) =>
+                    formatter={(value: any, name: any) =>
                       name === "revenue"
                         ? [formatCurrency(value), "Revenue"]
-                        : [value, name.charAt(0).toUpperCase() + name.slice(1)]
+                        : [String(value), String(name)]
                     }
                   />
                   <Line
