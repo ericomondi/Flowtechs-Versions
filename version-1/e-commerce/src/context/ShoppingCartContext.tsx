@@ -2,6 +2,7 @@
 import { createContext, useContext } from "react";
 import { useLocalStorage } from "../cart/useLocalStorage"; // Adjust path as needed
 import type { ReactNode } from "react";
+import { trackFunnelEvent } from "../utils/analytics"; // Make sure this file exists
 
 type ShoppingCartProviderProps = {
   children: ReactNode;
@@ -185,6 +186,12 @@ export function ShoppingCartProvider({ children }: ShoppingCartProviderProps) {
     stockQuantity: number;
   }) {
     setCartItems((currItems) => {
+      // Track add to cart event every time
+      trackFunnelEvent("add_to_cart", {
+        product_id: product.id,
+        name: product.name,
+        price: product.price,
+      });
       if (currItems.find((item) => item.id === product.id) == null) {
         return [...currItems, { ...product, quantity: 1 }];
       } else {

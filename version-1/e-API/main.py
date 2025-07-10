@@ -60,6 +60,7 @@ from auth import (
     get_user_role,
     send_order_confirmation_email,
     send_admin_new_order_notification,
+    get_optional_user,
 )
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import func, or_, extract
@@ -2406,7 +2407,7 @@ async def track_visit(
 async def track_funnel(
     db: db_dependency,
     data: dict = Body(...),
-    user: dict = Depends(get_active_user),  # Optional
+    user: Optional[dict] = Depends(get_optional_user),  # Use the new dependency
 ):
     try:
         funnel = models.FunnelEvent(

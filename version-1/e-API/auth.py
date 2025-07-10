@@ -1,6 +1,6 @@
 from datetime import timedelta, datetime
-from typing import Annotated
-from fastapi import APIRouter, Depends, HTTPException, Body, Path
+from typing import Annotated, Optional
+from fastapi import APIRouter, Depends, HTTPException, Body, Path, Request
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 from starlette import status
@@ -335,6 +335,13 @@ async def get_active_user(token: Annotated[str, Depends(oauth2_bearer)]):
     except jwt.DecodeError:
         logger.warning("Invalid token")
         raise HTTPException(status_code=401, detail="Invalid token")
+
+
+async def get_optional_user(request: Request) -> Optional[dict]:
+    try:
+        return await get_active_user(request)
+    except Exception:
+        return None
 
 
 def require_any_authenticated(current_user: dict = Depends(get_active_user)):
