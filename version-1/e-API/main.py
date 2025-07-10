@@ -2380,6 +2380,13 @@ async def track_visit(
     ),  # Optional: if you want to link to logged-in user
 ):
     try:
+        timestamp_str = data.get("timestamp")
+        if timestamp_str:
+            if timestamp_str.endswith("Z"):
+                timestamp_str = timestamp_str[:-1] + "+00:00"
+            timestamp = datetime.fromisoformat(timestamp_str)
+        else:
+            timestamp = datetime.utcnow()
         traffic = models.TrafficSource(
             user_id=user.get("id") if user else None,
             referrer=data.get("referrer"),
@@ -2387,11 +2394,7 @@ async def track_visit(
             utm_medium=data.get("utm_medium"),
             utm_campaign=data.get("utm_campaign"),
             session_id=data.get("session_id"),
-            timestamp=(
-                datetime.fromisoformat(data.get("timestamp"))
-                if data.get("timestamp")
-                else datetime.utcnow()
-            ),
+            timestamp=timestamp,
         )
         db.add(traffic)
         db.commit()
@@ -2410,15 +2413,18 @@ async def track_funnel(
     user: Optional[dict] = Depends(get_optional_user),  # Use the new dependency
 ):
     try:
+        timestamp_str = data.get("timestamp")
+        if timestamp_str:
+            if timestamp_str.endswith("Z"):
+                timestamp_str = timestamp_str[:-1] + "+00:00"
+            timestamp = datetime.fromisoformat(timestamp_str)
+        else:
+            timestamp = datetime.utcnow()
         funnel = models.FunnelEvent(
             user_id=user.get("id") if user else None,
             session_id=data.get("session_id"),
             event=data.get("event"),
-            timestamp=(
-                datetime.fromisoformat(data.get("timestamp"))
-                if data.get("timestamp")
-                else datetime.utcnow()
-            ),
+            timestamp=timestamp,
             extra_data=data.get("extra_data"),
         )
         db.add(funnel)
