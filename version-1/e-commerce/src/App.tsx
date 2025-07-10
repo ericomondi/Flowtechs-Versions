@@ -39,7 +39,10 @@ import Dashboard from "./pages/Dashboard";
 
 function App() {
   useEffect(() => {
-    trackFunnelEvent("visit");
+    if (!sessionStorage.getItem("visit_tracked")) {
+      trackFunnelEvent("visit");
+      sessionStorage.setItem("visit_tracked", "true");
+    }
   }, []);
 
   // useEffect(() => {

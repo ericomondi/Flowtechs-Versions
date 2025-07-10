@@ -262,10 +262,14 @@ const ProductDetail: React.FC = () => {
 
   useEffect(() => {
     if (product) {
-      trackFunnelEvent("product_view", {
-        product_id: product.id,
-        product_name: product.name,
-      });
+      const key = `product_viewed_${product.id}`;
+      if (!sessionStorage.getItem(key)) {
+        trackFunnelEvent("product_view", {
+          product_id: product.id,
+          product_name: product.name,
+        });
+        sessionStorage.setItem(key, "true");
+      }
     }
   }, [product]);
 
