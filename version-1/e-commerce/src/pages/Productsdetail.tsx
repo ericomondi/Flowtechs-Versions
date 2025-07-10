@@ -21,6 +21,7 @@ import { useAuth } from "../context/AuthContext";
 import { useUserStats } from "../context/UserStatsContext";
 import { useFavorites } from "../context/FavoritesContext";
 import { toast } from "react-toastify";
+import { trackFunnelEvent } from "../utils/analytics";
 
 // Types
 interface Product {
@@ -258,6 +259,15 @@ const ProductDetail: React.FC = () => {
     };
     fetchProduct();
   }, [id, API_BASE_URL, isAuthenticated, token]);
+
+  useEffect(() => {
+    if (product) {
+      trackFunnelEvent("product_view", {
+        product_id: product.id,
+        product_name: product.name,
+      });
+    }
+  }, [product]);
 
   const handleAddToCart = (): void => {
     if (!product) return;

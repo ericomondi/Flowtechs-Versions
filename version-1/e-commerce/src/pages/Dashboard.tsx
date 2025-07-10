@@ -709,6 +709,9 @@ const EcommerceDashboard = () => {
                       style={{
                         backgroundColor: stage.color,
                         width: `${stage.percentage}%`,
+                        maxWidth: "100%", // Prevent overflow
+                        minWidth: "2.5rem", // Optional: ensures visibility for very small percentages
+                        boxSizing: "border-box", // Prevents padding/border from causing overflow
                       }}
                     >
                       {stage.count.toLocaleString()}

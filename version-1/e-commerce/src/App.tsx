@@ -34,9 +34,14 @@ import CategoryProductsPage from "./components/CategoryPage";
 import CategoryManagement from "./pages/CategoryManagement";
 import BannerManagement from "./pages/BannerManagement";
 import { useEffect } from "react";
+import { trackFunnelEvent } from "./utils/analytics";
 import Dashboard from "./pages/Dashboard";
 
 function App() {
+  useEffect(() => {
+    trackFunnelEvent("visit");
+  }, []);
+
   // useEffect(() => {
   //   // Prevent Ctrl+A (select all)
   //   const handleKeyDown = (e: KeyboardEvent) => {
