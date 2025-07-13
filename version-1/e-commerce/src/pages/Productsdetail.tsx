@@ -273,6 +273,10 @@ const ProductDetail: React.FC = () => {
     }
   }, [product]);
 
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }, [id]);
+
   const handleAddToCart = (): void => {
     if (!product) return;
     if (getItemQuantity(product.id) >= product.stockQuantity) {

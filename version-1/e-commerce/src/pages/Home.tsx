@@ -706,7 +706,7 @@ const ModernEcommerceHomepage = () => {
                                 handleAddToCart(product);
                               }
                             }}
-                            className={`w-full py-3 rounded-xl font-semibold transition-all duration-300 hidden group-hover:block ${
+                            className={`w-full py-3 rounded-xl font-semibold transition-all duration-300 block sm:hidden group-hover:block sm:block ${
                               getItemQuantity(product.id) > 0
                                 ? "bg-red-600 text-white hover:bg-red-700"
                                 : "bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white shadow-lg shadow-blue-200 hover:shadow-blue-300 transform hover:scale-[1.02] active:scale-[0.98]"

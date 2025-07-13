@@ -899,7 +899,7 @@ const CategoryProductsPage = () => {
           <div className="relative">
             <button
               disabled={product.stock_quantity === 0}
-              className={`w-full px-4 py-3 rounded-xl font-semibold transition-all duration-300 hidden group-hover:block flex items-center justify-center gap-2 ${
+              className={`w-full px-4 py-3 rounded-xl font-semibold transition-all duration-300 block sm:hidden group-hover:block sm:block flex items-center justify-center gap-2 ${
                 getItemQuantity(product.id) > 0
                   ? "bg-red-600 text-white hover:bg-red-700 shadow-lg"
                   : product.stock_quantity === 0
